@@ -1,3 +1,6 @@
+const { spawn } = require('child_process');
+const { callbackify } = require('util');
+
 var app = require('http').createServer(handler),
 io = require('socket.io')(app),
 ws = require("ws"),
@@ -102,13 +105,13 @@ var GameList = (function(){
 	@param {Object} player the player player's socket
 	@param {Object} bot the bot player's socket
 	**/
-	that.addGame = function(player, bot, color){
+	that.addGame = function(player, color, diff){
 		if(rear == null){
-			rear = new Node(new Game(player, bot, color, unique), null);
+			rear = new Node(new Game(player, color, diff, unique), null);
 			rear.next = rear;
 		}
 		else{
-			var newNode = new Node(new Game(player, bot, color, unique), rear.next);
+			var newNode = new Node(new Game(player, color, diff, unique), rear.next);
 			rear.next = newNode;
 			rear = newNode;
 		}
@@ -169,34 +172,57 @@ var GameList = (function(){
 	return that;
 }());
 
-// TODO W, B vervangen door player, bot, color
-var Game = function(player, bot, color, gid){
+var Game = function(player, color, diff, gid){
 
 	var that = this,//reference in event functions
 		disconnected = false;
 
 	that.player = player;
-	that.bot = bot;
 	that.color = color;
 	that.gid = gid;
 	that.waitingForPromotion = false;
-
+	that.diff = diff;
+	that.spawn = require('child_process').spawn;
 
 	console.log("Game started");
 
+	that.calculateMove = function(data, callback){
+		that.pythonBot = spawn('python', ['./scripts/main.py', data])
+		that.pythonBot.stdout.on('data', function(data){
+			move = `${data}`
+			console.log(move)
+			callback(move)
+		})
+		that.pythonBot.stderr.on('data', (data) => {
+			console.error(`stderr: ${data}`);
+		  });
+		  
+		that.pythonBot.on('close', (code) => {
+			console.log(`child process exited with code ${code}`);
+		  }); 
+	};
+
 	//remove the listener which removes it from the queue (since it no longer is on the queue)
 	if (that.color == 'B'){
-		data = that.bot.calculateMove(null)
-		that.player.emit('opposing_move', data)
-		console.log(data)
+		data = 0;
+		i = 0;
+		that.calculateMove(null, function(move){
+			data = move
+			that.player.emit('opposing_move', data)
+			console.log('Bot move: '+data)
+		})
 	}
+	
 	
 	
 	that.player.on('movemade', function(data){
 		console.log("Player made a move");
 		if(!disconnected){
-			data = that.bot.calculateMove(data);
-			that.player.emit('opposing_move', data);
+			that.bot.calculateMove(data, function(move){
+				console.log('Move Received!')
+				data = move
+				that.player.emit('opposing_move', data);
+			});
 		}
 	});
 
@@ -244,42 +270,47 @@ io.sockets.on('connection', function (sk) {
   		console.log(data);
 		console.log(queue)
   		skColor = data.color
-		bot = new Bot(3);
+		diff = 3;
 	   
   		if(!skColor){skColor = 'U';}
   		if((skColor == 'W') || (skColor == 'B')){
-			GameList.addGame(sk, bot, skColor)
+			GameList.addGame(sk, skColor, diff)
   		}
   		else{ 
 			let a = Math.random()
 			if (a > 0.5) {
-				GameList.addGame(sk, bot, 'W')
+				GameList.addGame(sk, 'W', diff)
 			}else{
-				GameList.addGame(sk, bot, 'B')
+				GameList.addGame(sk, 'B', diff)
 			}
   		}
 
   	});
 });
 
-/**
- * @class 
- * @param {*} diff 
- */
-
+/** 
 var Bot = function(diff){
 	var that = this
     that.diff = diff
-	const { spawn } = require('child_process');
-	const childPython = spawn('python', ['--version'])
-	childPython.stdout.on('data', (data) => {
-		console.log(`data:${data}`);
-	});
+	var spawn = require('child_process').spawn;
+	var pythonBot = spawn('python', ['./test.py'])
 
-    that.calculateMove = function(data){
-
-		return {'pieceX': 3, 'pieceY': 6, 'newX': '3', 'newY': '4' }
-	}
+    that.calculateMove = function(data, callback){
+		console.log("Calc move")
+		pythonBot = spawn('python', ['./test.py', data])
+		pythonBot.stdout.on('data', function(data){
+			move = `${data}`
+			console.log(move)
+			callback(move)
+		})
+		pythonBot.stderr.on('data', (data) => {
+			console.error(`stderr: ${data}`);
+		  });
+		  
+		pythonBot.on('close', (code) => {
+			console.log(`child process exited with code ${code}`);
+		  }); 
+	}  
 }
-
+*/
 
