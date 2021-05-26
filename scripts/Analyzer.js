@@ -560,7 +560,6 @@ CHESSAPP.Analyzer ={
 		for(var i = 0; i < pieces.length; i++){
 			if(pieces[i]){
 				if(pieces[i].x == x && pieces[i].y == y){
-					console.log(x+" - "+y)
 					return pieces[i];
 				}
 			}

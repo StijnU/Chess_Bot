@@ -222,7 +222,7 @@ that.init = function(userSettings){
 		if(_settings.online){
 			console.log("connecting...");
 			CHESSAPP.onlinePlay.connect(_settings, function(){
-				that.setUpBoard.apply(that);
+				that.setUpBoard();
 			});
 		} 
 		else{
@@ -603,8 +603,7 @@ that.showPromotion = function(stg){
 //gets a move made from the opposing player online
 //makes it locally to match
 that.onlineMove = function(data){
-	console.log('Bot moved piece to:')
-	console.log(data);
+
 	//get the piece that moved
 	var pieceMoved = CHESSAPP.Analyzer.pieceExists({pieces: that.pieces, x: data.pieceX, y: data.pieceY});
 	console.log(data.pieceX+" - "+data.pieceY)
@@ -613,7 +612,6 @@ that.onlineMove = function(data){
 			that.promote({piece: pieceMoved, pieceType: data.promotion});
 		}
 		that.movePieceTo({piece: pieceMoved, x: data.newX, y: data.newY, promotion: data.promotion, special: data.special});
-		console.log('Piece moved.')
 	}
 }
 

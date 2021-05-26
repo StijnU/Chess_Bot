@@ -10,6 +10,7 @@ CHESSAPP.onlinePlay = {
 			hostPort = "http://livechess.herokuapp.com";
 		}
 		this.sk = io.connect(hostPort);
+		callback();
 		CHESSAPP.ui.statusUpdate({type: 'fb', msg: 'Searching for partner...'});
 		this.sk.emit('setup', {color: stg.preferredColor});
 		this.sk.on("chat", function(data){
@@ -27,7 +28,8 @@ CHESSAPP.onlinePlay = {
 			CHESSAPP.GamePlay.statusUpdate({type: 'fb', msg: 'Partner found, game has begun'});
 			CHESSAPP.GamePlay.statusUpdate({type: 'fb', msg : 'Playing as ' + (data.color == 'W' ? "white" : 'black')})
 			CHESSAPP.GamePlay.setOnlineColor(data.color); //maybe change this to decouple
-		callback();
+	
+	
 		});
 		this.sk.on('opposing_move', function(data){
 			CHESSAPP.GamePlay.onlineMove(data);
